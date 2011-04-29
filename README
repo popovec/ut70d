@@ -1,0 +1,286 @@
+Documentation for ut70d multimeter communication protocol. 
+
+Copyright (c) 2010 Peter Popovec
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+USA.
+
+
+
+Cable pins:
+
+		RS232 name
+1 NC		Carier detect
+2 green		RX
+3 white         TX
+4,6 orange	DTR(4),DSR(6)
+5 yelow		GND
+7,8 blue	RTS(7),CTS(8)
+9 NC		Ring indikator
+
+
+IR head  
+
+on head IR transmitter and IR receiver can be found. Cable get out  from
+head on side of IR receiver
+
+
+
+Communication:
+
+Send  one byte 0-127, get echo of this value
+
+For value 128 to 150  response paket can be received:
+
+Paket format:
+0 = echo from command 
+1 = mode (rotary switch position+subfunction by yellow button)
+2,3,4 bit mapped fields, see bellow,
+
+n-2 checksum 
+n-1 0xa0 - end of paket
+
+
+checksum calculation, because UNI-t doc is very difficult to read. (what
+is bit 8 in Uni-T doc ? ). 
+
+Based on experiments and Uni-T doc following algorhithm can be used to
+check paket:
+
+1. X=0
+2. X = X XOR byte[Y] iterate Y  from 0 to n-3
+3. X[bit4] = X[bit4] xor X[bit6]
+4. X[bit5] = X[bit5] xor X[bit7]
+5. clear X[bit6],X[bit7]
+6. X -= byte[n-2]
+7. X += 0x22
+8. X==0 ?  paket ok.
+ 
+
+byt 1  MODE
+-----
+F8 1111 1000  V~
+F0 1111 0000  V=
+E8 1110 1000  mV
+E0 1110 0000  R/C
+E1 1110 0001  F
+D8 1101 1000  Dio
+A8 1010 1000  A=    
+A9 1010 1001  A~
+B0 1011 0000  mA=
+B1 1011 0001  mA~
+
+byt 2  RANGE and UNITS 
+-----
+bit 7  always 1 ?
+bit 6  manual/auto
+bit 5,4,3 range ..
+bit 2,1,0 
+	0 = F-capacitance, 1=? 2= V,A,OHM 3 =? 
+        4 = Hz frequency, 5 = %  6= ? 7 = ?
+
+
+byt 3 
+-----
+7 always 1 ?
+6 "REC"
+5 always 0 ?
+4,3	00 - none 01 MAX 10 MIN  11 AVG
+2 1=beeper on 
+1 always 0 ?
+0 always 0 ?
+
+
+byt4  binary maped:
+----
+7   always 1 ?
+6   always 0 ?
+5   1 = low bat
+4   1 = +    0 = -
+3   1 = overflow (0L on display)
+2   1 = Hz   0 = no Hz
+1   always 0 ?
+0   1 = hold 0 = sample
+
+
+
+Example response pakets:
+
+
+ 
+128 reply paket len  11			ADC readimg SUM1 in FS970X *Direct reading sum1
+80 F0 82 80 80 80 A0 8E 90 5E 0A 
+129 reply paket len  11
+81 F0 82 80 80 80 A1 B8 80 3C 0A 
+130 reply paket len  11			ADC readimg SUM2 in FS970X *direct reading sum2
+82 F0 82 80 80 80 A2 88 80 4C 0A 
+131 reply paket len  11
+83 F0 82 80 80 85 B7 BE 80 2F 0A 
+132 reply paket len  11			*positive peak
+84 F0 82 80 80 8A B7 BE 80 27 0A 
+133 reply paket len  11
+85 F0 82 80 80 A0 87 B4 80 36 0A 
+134 reply paket len  11			*negative peak
+86 F0 82 80 80 A0 87 B4 80 39 0A 
+
+135 reply paket len  15
+87 F0 82 80 80 80 80 80 80 80 80 80 80 27 0A *UNI-T doc  ktb and ksg (check FS900X doc)
+136 reply paket len  15
+88 F0 82 80 80 80 80 80 80 80 80 80 80 2C 0A 
+
+137 reply paket len  12
+89 F0 82 80 80 3F 30 33 32 33 58 0A 	*curent displey read
+
+138 reply paket len  8
+8A F0 82 80 80 81 4B 0A   <<bargraph read  (value 81, byte 5, 80=0 A8=40=max)
+
+139 reply paket len  12
+8B F0 82 80 80 3E 36 3B 33 35 5E 0A 	*dual display read
+140 reply paket len  12	
+8C F0 82 80 80 3F 30 33 32 33 55 0A 
+141 reply paket len  12
+8D F0 82 80 80 3F 30 33 32 33 54 0A 
+142 reply paket len  12
+8E F0 82 80 80 3F 30 33 32 33 53 0A 
+143 reply paket len  12
+8F F0 82 80 80 3F 30 33 32 33 52 0A 
+144 reply paket len  12
+90 F0 82 80 80 3F 30 33 32 33 51 0A 
+145 reply paket len  12
+91 F0 82 80 80 3F 30 33 32 33 50 0A 
+146 reply paket len  12
+92 F0 82 80 80 3F 30 33 32 33 4F 0A 
+147 reply paket len  12
+93 F0 82 80 80 3F 30 33 32 33 4E 0A 
+148 reply paket len  12
+94 F0 82 80 80 3F 30 33 32 33 4D 0A 
+
+149 reply paket len  7
+95 F0 82 80 80 39 0A 
+
+150 reply paket len  12
+96 F0 82 80 80 3F 30 33 32 33 4B 0A 
+
+
+Summary: 5 paket types can be received:
+
+128 to 134  11 byte response 
+
+135,136     15 byte response - unkown data
+
+137,139-148,150 12 byte response
+
+138 8 byte response		
+  bargraph read (byte 5  values 80-A8 = 0-40), 
+  on real bargraph for value 0 firs position is active, for value 1  two
+  bargraph "positions" is signalized etc ..  for 40 all 41 bargaph positions
+  is signalized 
+
+149 7 byte response
+
+
+
+
+151 to 159: only echo can be received
+
+160 echo can be received, switch "autorange" on
+161 echo can be received, multimeter "RANGE" button
+162 echo can be received, unknown fcion (*UNI-T doc: Hz button .. but this not work) 
+163 echo can be received, multimeter "Hz" button
+164 echo can be received, unknown fcion (*UNI-T doc: Hold button .. but this not work) 
+165 echo can be received, multimeter "Hold" button
+166 echo can be received, unknown fcion (*UNI-T doc: REL button .. but this not work)
+167 echo can be received, multimeter "REL" button
+168 echo can be received, disable "MAX/MIN"
+169 echo can be received, multimeter "MAX MIN" button
+170 ??	(*UNI-T doc: Peak key, untested)
+171 beep on  (untested) (*UNI-T doc: Peak key, untested)
+172 ?? (*UNI-T doc: Select key, untested)
+173 AC-DC-Cap (untested) (*UNI-T doc: Select key, untested)
+
+174..207 echo only
+208,209 (UNI-T doc Read and write EEPROM - untested)
+
+210-255 only echo
+
+---------------------------------------------------------------------------------
+
+
+Send 0x89,  get 12 byt response:
+
+byt 0 (0x89) 
+
+
+byt 5,6,7,8,9  - display characters
+-------------
+byt 10 - checksum
+------
+byt 11 
+------
+Always 0x0a ??
+
+
+Send 0x8A
+get 8 byt reponse
+
+
+Send 0x9B
+ 12 byt response
+
+
+
+
+range     range  unit  display  multiply to ohm
+800 ohm   0        2   xxx.x   *1
+8 kohm    1        2   x.xxx   *1000
+80 kohm   2        2   xx.xx   *1000 
+800 kohm  3        2   xxx.x   *1000 
+8mohm     4        2   x.xxx   *1000000
+80mohm    5        2   xx.xx   *1000000
+
+800 nS    6        2   xx.xx
+
+Warning, on range switch from 800ohm to 8kohm, some wrong display
+data can be sampled. Example pakets:
+
+R Manual 0 2 _ _ _ _ SAMPLE _ +<3 0 > <3 0>  810.3
+[89 E0 C2 80 80 3F 38 31 30 33 60 0A]
+R Manual 0 2 _ _ _ _ SAMPLE _ +<3 0 > <3 0>  810.3
+[89 E0 CA 80 80 3F 38 31 30 33 58 0A]
+R Manual 1 2 _ _ _ _ SAMPLE _ +<3 1 > <3 1>  8.103 << wrong !!! 
+[89 E0 CA 80 80 3F 38 31 30 33 58 0A]
+R Manual 1 2 _ _ _ _ SAMPLE _ +<3 1 > <3 1>  8.103 << wrong !!! 
+[89 E0 CA 80 80 3F 30 38 31 31 56 0A]
+R Manual 1 2 _ _ _ _ SAMPLE _ +<3 1 > <3 1>  0.811
+[89 E0 CA 80 80 3F 30 38 31 31 56 0A]
+R Manual 1 2 _ _ _ _ SAMPLE _ +<3 1 > <3 1>  0.811
+
+To get "stable" output for computer, some workaround is needed. This is
+like "range" bits is changed before display output is changet. This is
+also true for multimeter display, but this can be ignored due display
+"blank". This blank is not signalled in data communication ? 
+
+ 
+
+
+                               multiply to pf
+8   nF    0        0   x.xxx   *1000  	
+80  nF    1        0   xx.xx   *1000
+800 nF    2        0   xxx.x   *1000
+8   uF    3        0   x.xxx   *1000000
+80  uF    4        0   xx.xx   *1000000
+800 uF    5        0   xxx.x   *1000000
+
+
