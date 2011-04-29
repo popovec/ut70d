@@ -1,4 +1,8 @@
 Documentation for ut70d multimeter communication protocol. 
+Projekt home: http://zub.fei.tuke.sk/cgi-bin/gitweb.cgi?p=ut70d.git
+download:  git clone http://zub.fei.tuke.sk/GIT/ut70d.git
+
+
 
 Copyright (c) 2010 Peter Popovec
 
